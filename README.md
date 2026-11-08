@@ -30,6 +30,7 @@ Tests need Pester 5.5 or later. The PSScriptAnalyzer check is skipped if PSScrip
 | `tests/Module.Tests.ps1` | Rules for the whole module: manifest, exports, help, ASCII files, analyzer |
 | `tests/Public`, `tests/Private` | One `<Function>.Tests.ps1` per function |
 | `tests/TestHelpers.ps1` | Imports the module under test; dot-sourced by every test file |
+| `agents/` | Instructions for coding agents: how to work with this repository and initialize a new module |
 | `tools/` | The scripts behind `build.ps1` |
 | `tools/update-subtree.ps1` | Updates the branch `<name>` (lowercase) with only the history of `src/<Name>`, for use with `git subtree` |
 
