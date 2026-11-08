@@ -1,0 +1,85 @@
+# Releases the latest v* tag: the offline package (zip) to a GitHub release and the module to the PowerShell Gallery.
+# Started by hand only (Actions > Release > Run workflow). It runs no tests: run them locally before tagging.
+#
+# Needs the repository secret PSGALLERY_API_KEY. The tag must be v<ModuleVersion of the manifest>, e.g. v0.1.0.
+# The release text is what CHANGELOG.txt gained since the latest release (all of it for the first release).
+# The gallery comes last because a version can be uploaded there only once: if an earlier step fails, just run it again.
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Check out the latest tag
+        id: tag
+        shell: bash
+        run: |
+          tag=$(git tag --list 'v*' --sort=-v:refname | sed -n 1p)
+          if [ -z "$tag" ]; then echo "No v* tag found." >&2; exit 1; fi
+          git checkout --quiet "$tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Check that the tag matches the manifest version
+        id: module
+        shell: pwsh
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          $manifests = @(Get-ChildItem -Path src/*/*.psd1)
+          if ($manifests.Count -ne 1) { throw "Expected one manifest in src/*/, found $($manifests.Count)." }
+          $version = (Import-PowerShellDataFile -Path $manifests[0].FullName).ModuleVersion
+          if ("v$version" -ne $env:TAG) { throw "Tag $env:TAG does not match ModuleVersion $version." }
+          "name=$($manifests[0].BaseName)" >> $env:GITHUB_OUTPUT
+
+      - name: Write the release notes
+        shell: bash
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          releases=$(gh release list --exclude-drafts --limit 1000 --json tagName --jq '.[].tagName')
+          previous=$(printf '%s\n' "$releases" | grep -vxF "$TAG" | sed -n 1p || true)
+          notes="$RUNNER_TEMP/release-notes.txt"
+          if [ -n "$previous" ]; then
+            git diff --unified=0 "$previous" "$TAG" -- CHANGELOG.txt \
+              | awk '/^@@/ { body = 1; next } body && /^\+/ { print substr($0, 2) }' > "$notes"
+          else
+            cp CHANGELOG.txt "$notes"
+          fi
+          if [ ! -s "$notes" ]; then echo "CHANGELOG.txt did not change since $previous." > "$notes"; fi
+          cat "$notes"
+
+      - name: Build the package
+        shell: pwsh
+        run: ./build.ps1 -Package
+
+      - name: Create or update the GitHub release
+        shell: bash
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          NAME: ${{ steps.module.outputs.name }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="$RUNNER_TEMP/release-notes.txt"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file "$notes"
+            gh release upload "$TAG" out/*.zip --clobber
+          else
+            gh release create "$TAG" out/*.zip --title "$NAME $TAG" --notes-file "$notes"
+          fi
+
+      - name: Publish to the PowerShell Gallery
+        shell: pwsh
+        env:
+          PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
+        run: ./build.ps1 -Publish $env:PSGALLERY_API_KEY
