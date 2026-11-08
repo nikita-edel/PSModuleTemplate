@@ -60,10 +60,12 @@ if (-not $roots) {
 foreach ($root in $roots) {
     $moduleRoot = Join-Path $root $moduleName
     $target = Join-Path $moduleRoot $version
-    if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Recurse -Force }
+    $wasInstalled = Test-Path -LiteralPath $target
+    if ($wasInstalled) { Remove-Item -LiteralPath $target -Recurse -Force }
     if ($Uninstall) {
         if ((Test-Path -LiteralPath $moduleRoot) -and @(Get-ChildItem -LiteralPath $moduleRoot -Force).Count -eq 0) { Remove-Item -LiteralPath $moduleRoot -Force }
-        Write-Host "Removed $moduleName $version from $root"
+        if ($wasInstalled) { Write-Host "Removed $moduleName $version from $root" }
+        else { Write-Host "$moduleName $version is not installed in $root" }
         continue
     }
     $null = New-Item -ItemType Directory -Force -Path $target

@@ -14,8 +14,11 @@
 .PARAMETER Install
     Build the module and run tools/install.ps1 to install it for the current user.
 
+.PARAMETER Uninstall
+    Remove the current version of the module from the current user's module folder(s).
+
 .PARAMETER ModulePath
-    With -Install: module folder(s) to use instead of the current user's default ones.
+    With -Install or -Uninstall: module folder(s) to use instead of the current user's default ones.
 
 .PARAMETER Package
     Write out/<Name>-<Version>.zip: the module and an install.ps1 that installs it offline.
@@ -38,6 +41,9 @@
     ./build.ps1 -Install
 
 .EXAMPLE
+    ./build.ps1 -Uninstall
+
+.EXAMPLE
     ./build.ps1 -Package
 
 .EXAMPLE
@@ -52,6 +58,8 @@ param(
     [object[]]$TestName,
 
     [switch]$Install,
+
+    [switch]$Uninstall,
 
     [string[]]$ModulePath,
 
@@ -74,7 +82,8 @@ if ($wantsPublish -and [string]::IsNullOrWhiteSpace($Publish)) { throw 'The API 
 if ($wantsPublish -and -not (Get-Command -Name Publish-PSResource -ErrorAction SilentlyContinue)) {
     throw 'Publishing needs PSResourceGet, which comes with PowerShell 7.4 and later. Use pwsh, or: Install-Module Microsoft.PowerShell.PSResourceGet -Scope CurrentUser'
 }
-if (-not ($Test -or $Install -or $Package -or $wantsPublish)) {
+if ($Install -and $Uninstall) { throw 'Use either -Install or -Uninstall, not both.' }
+if (-not ($Test -or $Install -or $Uninstall -or $Package -or $wantsPublish)) {
     Get-Help -Name $PSCommandPath
     return
 }
@@ -91,9 +100,9 @@ if ($Package) {
     $null = & (Join-Path $tools 'package.ps1')
 }
 
-if ($Install) {
+if ($Install -or $Uninstall) {
     $module = & (Join-Path $tools 'build.ps1')
-    $installArguments = @{ SourcePath = Split-Path -Parent (Split-Path -Parent $module.Path) }
+    $installArguments = @{ SourcePath = Split-Path -Parent (Split-Path -Parent $module.Path); Uninstall = $Uninstall }
     if ($ModulePath) { $installArguments.ModulePath = $ModulePath }
     & (Join-Path $tools 'install.ps1') @installArguments
 }

@@ -16,6 +16,7 @@ A template for PowerShell modules that run on Windows PowerShell 5.1 and PowerSh
 | `./build.ps1 -Test` | Runs all tests |
 | `./build.ps1 -Test Get-Greeting tests/Private` | Runs the given tests: test names, or paths to files or folders |
 | `./build.ps1 -Install` | Builds the module and installs it for the current user with `tools/install.ps1` |
+| `./build.ps1 -Uninstall` | Removes the current version for the current user |
 | `./build.ps1 -Package` | Writes `out/<Name>-<Version>.zip`, the module with an offline `install.ps1` |
 | `./build.ps1 -Publish <key>` | Builds the module and publishes it to the PowerShell Gallery |
 

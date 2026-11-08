@@ -27,6 +27,7 @@ The repository owner adds the secret `PSGALLERY_API_KEY` in GitHub before the fi
 ./build.ps1 -Test                 # all tests
 ./build.ps1 -Test Get-Greeting    # test names, or paths to files or folders
 ./build.ps1 -Install              # install for the current user
+./build.ps1 -Uninstall            # remove the current version again
 ./build.ps1 -Package              # out/<Name>-<Version>.zip with an offline install.ps1
 ```
 
