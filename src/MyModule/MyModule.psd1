@@ -8,6 +8,7 @@
     Copyright            = '(c) 2026 Nikita Edel. Licensed under the MIT License.'
     Description          = 'A minimal example module. Replace this text with what your module does.'
     PowerShellVersion    = '5.1'
+    RequiredModules      = @()
 
     # One entry per file in Public/. tests/Module.Tests.ps1 checks that the two stay in sync.
     FunctionsToExport    = @(

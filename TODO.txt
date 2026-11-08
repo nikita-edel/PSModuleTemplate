@@ -1,0 +1,1 @@
+how to handle other dependencies that are shipped as vendor
